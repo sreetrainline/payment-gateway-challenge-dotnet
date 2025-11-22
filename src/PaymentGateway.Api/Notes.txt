@@ -1,0 +1,57 @@
+1. 2 endpoints 
+2. Retry mechanism 
+3. How to do validation ?. ( Fluent validation or a better method)
+4. Controller > Service > Repository 
+5. What Data Structure to choose - Concurrency ?
+6. Unit Tests 
+7. Wire mock Integration Tests 
+8. HttpClientFactory > HttpClient 
+9. GlobalUsings
+10. Build Props file 
+11. Idempotency - how to apply
+
+Post - Not idempotent ?
+
+Put - idempotent 
+
+Use - CreatedAtRoute 
+
+Separated concerns between what is stored and what is in controller 
+
+Validation attribute for Models - Test them 
+
+Validation attribute for Rules vs Fluent Validation 
+
+Separate Business Logic and repository
+
+IpaymentRepository and IMemoryPaymentRepository
+
+Concurrent Dictionary ? - Multiple calls - don’t want race condition
+
+Trade off between thread safety 
+
+Application ExceptionHandler - UseExceptionHandler ( Problem details )
+
+Use Fluent Assertions 
+
+IClassFixture - Web Application Factory 
+
+201 for Create 
+
+Scope of services - Scoped vs Transient 
+
+HttpClient / HttpClient Factory / Resilience 
+
+Calling an API and deserialising the output 
+
+Jitter wait retry policy - Typed HttpClient ( No need for factory ?) 
+
+ServiceConfig ? - to read details - IOptions - vs IOptionssnapshot ?.
+
+Records usage ?
+
+POCO ?
+
+
+GetFromJsonAsync - HttpClient Json Extentions - No need of serialisations 
+

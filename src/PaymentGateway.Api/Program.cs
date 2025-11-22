@@ -1,3 +1,5 @@
+using PaymentGateway.Api.Controllers;
+using PaymentGateway.Api.Models.Responses;
 using PaymentGateway.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +11,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton<PaymentsRepository>();
+builder.Services.AddSingleton<IPaymentsRepository,PaymentsRepository>();
+builder.Services.AddScoped<IPaymentService,PaymentService>();
+builder.Services.AddTransient<IBankClient,BankClient>();
 
 var app = builder.Build();
 
@@ -27,3 +31,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
