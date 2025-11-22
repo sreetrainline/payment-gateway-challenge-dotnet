@@ -1,3 +1,4 @@
+using PaymentGateway.Api.Models;
 using PaymentGateway.Api.Models.Requests;
 using PaymentGateway.Api.Models.Responses;
 
@@ -14,10 +15,11 @@ public class PaymentService(IPaymentsRepository paymentsRepository, IBankClient 
 {
     public PostPaymentResponse ProcessPayment(PostPaymentRequest paymentRequest)
     {
-        var payment = PaymentMapper.ToPayment(paymentRequest);
         
         // First call bank client , So we get status 
-        //var bankResponse = bankClient.SubmitPayment(paymentRequest);
+        var bankResponse = bankClient.SubmitPayment(PaymentMapper.ToBankingRequest(paymentRequest));
+        
+        var payment = PaymentMapper.ToPayment(paymentRequest,bankResponse);
         
         //What happens if repository call fails ?.
         paymentsRepository.Add(payment);
@@ -45,19 +47,36 @@ public static class PaymentMapper
             Amount = payment.Amount,
             Currency = payment.Currency,
             ExpiryMonth = payment.ExpiryMonth,
-            ExpiryYear = payment.ExpiryYear
+            ExpiryYear = payment.ExpiryYear,
+            Status = payment.IsAuthorized ? PaymentStatus.Authorized : PaymentStatus.Declined,
+            CardNumberLastFour = payment.CardNumberLastFour
         };
     }
 
-    public static Payment ToPayment(PostPaymentRequest request)
+    public static Payment ToPayment(PostPaymentRequest request, BankResponse bankResponse)
     {
         return new Payment
         {
-            Id = new Guid(),
+            Id = Guid.NewGuid(),
             Amount = request.Amount,
             Currency = request.Currency,
             ExpiryMonth = request.ExpiryMonth,
-            ExpiryYear = request.ExpiryYear
+            ExpiryYear = request.ExpiryYear,
+            IsAuthorized = bankResponse.IsAuthorized,
+            AuthorisationCode = bankResponse.AuthorisationCode,
+            CardNumberLastFour = request.CardNumber.Substring(11,4)
+        };
+    }
+    
+    public static BankPaymentRequest ToBankingRequest(PostPaymentRequest request)
+    {
+        return new BankPaymentRequest
+        {
+            CardNumber = request.CardNumber,
+            ExpiryDate = $"{request.ExpiryMonth}/{request.ExpiryYear}",
+            Currency = request.Currency,
+            Amount = request.Amount,
+            Cvv = request.Cvv
         };
     }
 }
@@ -72,21 +91,11 @@ public interface IPaymentsRepository
     Payment Get(Guid id);
 }
 
-public interface IBankClient
-{
-    Status SubmitPayment(PostPaymentResponse payment);
-}
 
-public class BankClient : IBankClient
-{
-    public Status SubmitPayment(PostPaymentResponse payment)
-    {
-        throw new NotImplementedException();
-    }
-}
 
 public enum Status
 {
     Authorized,
-    Declined
+    Declined,
+    Error
 }

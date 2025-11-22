@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 using PaymentGateway.Api.Controllers;
 using PaymentGateway.Api.Models.Responses;
 using PaymentGateway.Api.Services;
@@ -14,6 +17,16 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IPaymentsRepository,PaymentsRepository>();
 builder.Services.AddScoped<IPaymentService,PaymentService>();
 builder.Services.AddTransient<IBankClient,BankClient>();
+
+// Add Resilience
+builder.Services.AddHttpClient<BankClient>(); 
+
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    });
 
 var app = builder.Build();
 
