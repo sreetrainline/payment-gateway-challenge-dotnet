@@ -1,16 +1,13 @@
-using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentValidation;
-using Microsoft.AspNetCore.Mvc;
-using PaymentGateway.Api.Controllers;
 using PaymentGateway.Api.Exceptions;
 using PaymentGateway.Api.Extentions;
 using PaymentGateway.Api.Services;
 using PaymentGateway.Api.Validators;
-
-using Polly;
-using Polly.Retry;
+using PaymentGateway.Application.Interfaces;
+using PaymentGateway.Application.Services;
+using PaymentGateway.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 

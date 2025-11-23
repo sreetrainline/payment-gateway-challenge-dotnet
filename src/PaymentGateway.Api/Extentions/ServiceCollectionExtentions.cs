@@ -2,7 +2,9 @@ using System.Net;
 
 using Microsoft.AspNetCore.Mvc;
 using PaymentGateway.Api.Controllers;
-using PaymentGateway.Api.Services;
+using PaymentGateway.Domain.Enums;
+using PaymentGateway.Domain.Exceptions;
+using PaymentGateway.Infrastructure;
 
 using Polly;
 using Polly.Retry;
@@ -25,7 +27,7 @@ public static class ServiceCollectionExtensions
 
                 var response = new PaymentErrorResponse
                 {
-                    Status = Status.Rejected,
+                    Status = PaymentStatus.Rejected,
                     Message = "The request is invalid.",
                     Errors = errors
                 };

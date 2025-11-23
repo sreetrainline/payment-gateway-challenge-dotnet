@@ -1,3 +1,3 @@
-namespace PaymentGateway.Api.Exceptions;
+namespace PaymentGateway.Domain.Exceptions;
 
 public class PaymentSubmissionException(string message) : Exception(message);

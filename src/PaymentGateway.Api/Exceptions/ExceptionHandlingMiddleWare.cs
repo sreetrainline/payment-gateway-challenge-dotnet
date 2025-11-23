@@ -1,5 +1,6 @@
 using PaymentGateway.Api.Controllers;
-using PaymentGateway.Api.Services;
+using PaymentGateway.Domain.Enums;
+using PaymentGateway.Domain.Exceptions;
 
 namespace PaymentGateway.Api.Exceptions;
 
@@ -26,7 +27,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
 
         var paymentErrorResponse = new PaymentErrorResponse
         {
-            Status = Status.Declined,
+            Status = PaymentStatus.Declined,
             Message = "An Unexpected Error Occured. Please try again",
             Errors = [] // Don't want to leak system internals to client.
         };

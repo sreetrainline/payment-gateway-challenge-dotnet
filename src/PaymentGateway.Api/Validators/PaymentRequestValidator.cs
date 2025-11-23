@@ -1,6 +1,6 @@
 using FluentValidation;
 
-using PaymentGateway.Api.Models.Requests;
+using PaymentGateway.Domain.Models.Requests;
 
 namespace PaymentGateway.Api.Validators;
 

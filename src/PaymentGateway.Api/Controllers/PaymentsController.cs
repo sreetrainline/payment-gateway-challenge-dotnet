@@ -1,9 +1,11 @@
 ﻿using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
-using PaymentGateway.Api.Models.Requests;
-using PaymentGateway.Api.Models.Responses;
-using PaymentGateway.Api.Services;
+using PaymentGateway.Application.Services;
+using PaymentGateway.Domain.Enums;
+using PaymentGateway.Domain.Exceptions;
+using PaymentGateway.Domain.Models.Requests;
+using PaymentGateway.Domain.Models.Responses;
 
 namespace PaymentGateway.Api.Controllers;
 
@@ -43,7 +45,7 @@ public class PaymentsController(IPaymentService paymentService, IValidator<PostP
 
         var response = new PaymentErrorResponse
         {
-            Status = Status.Rejected,
+            Status = PaymentStatus.Rejected,
             Message = "The request is invalid.",
             Errors = errors
         };
@@ -51,13 +53,3 @@ public class PaymentsController(IPaymentService paymentService, IValidator<PostP
         return BadRequest(response);
     }
 }
-
-public class PaymentErrorResponse
-{
-    public Status Status { get; set; }
-    public string Message { get; set; }
-    public string[] Errors { get; set; }
-}
-
-
-

@@ -1,16 +1,14 @@
-using System.Text.Json.Serialization;
+using System.Net.Http.Json;
 
 using Microsoft.Extensions.Options;
 
-using PaymentGateway.Api.Exceptions;
-using PaymentGateway.Api.Models.Responses;
+using PaymentGateway.Api.Services;
+using PaymentGateway.Application.Interfaces;
+using PaymentGateway.Domain.Exceptions;
+using PaymentGateway.Infrastructure.ExternalModels;
 
-namespace PaymentGateway.Api.Services;
+namespace PaymentGateway.Infrastructure;
 
-public interface IPaymentProvider
-{
-    Task<BankResponse> SubmitPayment(BankPaymentRequest request);
-}
 public class PaymentProvider(IHttpClientFactory httpClientFactory, IOptions<BankConfig> bankConfig)
     : IPaymentProvider
 {
@@ -43,34 +41,4 @@ public class PaymentProvider(IHttpClientFactory httpClientFactory, IOptions<Bank
             throw new UnknownPaymentException("Unexpected Error in Payments",exception);
         }
     }
-}
-
-public class BankConfig
-{
-    public string BaseUrl { get; set; }
-}
-
-public class BankPaymentRequest
-{
-    [JsonPropertyName("card_number")]
-    public string CardNumber { get; set; }
-    
-    [JsonPropertyName("expiry_date")]
-    public string ExpiryDate { get; set; }
-    [JsonPropertyName("currency")]
-    public string Currency { get; set; }
-    [JsonPropertyName("amount")]
-    public decimal Amount { get; set; }
-    [JsonPropertyName("cvv")]
-    public string Cvv { get; set; }
-    
-}
-
-public class BankResponse
-{
-    [JsonPropertyName("authorized")]
-    public bool IsAuthorized { get; set; }
-    [JsonPropertyName("authorization_code")]
-    public Guid AuthorisationCode { get; set; }
-    
 }
