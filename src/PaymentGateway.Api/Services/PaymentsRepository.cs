@@ -1,23 +1,29 @@
-﻿using PaymentGateway.Api.Controllers;
-using PaymentGateway.Api.Models;
-using PaymentGateway.Api.Models.Responses;
+﻿using System.Collections.Concurrent;
+using PaymentGateway.Api.Exceptions;
 
 namespace PaymentGateway.Api.Services;
 
-
-
 public class PaymentsRepository : IPaymentsRepository
 {
-    public List<Payment> Payments = new();
+    private readonly ConcurrentDictionary<Guid,Payment> _paymentsStorage = new();
     
     public void Add(Payment payment)
     {
-        Payments.Add(payment);
+        if (payment == null)
+            throw new ArgumentNullException(nameof(payment));
+        
+        if (payment.Id == Guid.Empty)
+            throw new ArgumentException(nameof(payment.Id));
+        
+        var paymentAdded = _paymentsStorage.TryAdd(payment.Id,payment);
+
+        if (!paymentAdded)
+            throw new PaymentNotAddedException($"Payment with id {payment.Id} already exists");
     }
 
-    public Payment Get(Guid id)
+    public Payment? Get(Guid id)
     {
-        return Payments.FirstOrDefault(p => p.Id == id);
+        return _paymentsStorage.GetValueOrDefault(id);
     }
 }
 

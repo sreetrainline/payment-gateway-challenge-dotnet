@@ -1,25 +1,35 @@
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
+using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using PaymentGateway.Api.Controllers;
-using PaymentGateway.Api.Models.Responses;
+using PaymentGateway.Api.Exceptions;
+using PaymentGateway.Api.Extentions;
 using PaymentGateway.Api.Services;
+using PaymentGateway.Api.Validators;
+
+using Polly;
+using Polly.Retry;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<IPaymentsRepository,PaymentsRepository>();
 builder.Services.AddScoped<IPaymentService,PaymentService>();
-builder.Services.AddTransient<IBankClient,BankClient>();
+builder.Services.AddTransient<IPaymentProvider,PaymentProvider>();
 
-// Add Resilience
-builder.Services.AddHttpClient<BankClient>(); 
+builder.Services.AddHttpClientWithRetry();
+builder.Services.ConfigureModelBindingBehaviour();
+
+
+builder.Services.Configure<BankConfig>(
+    builder.Configuration.GetSection("BankConfig"));
+
+builder.Services.AddValidatorsFromAssemblyContaining<PaymentRequestValidator>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -29,6 +39,8 @@ builder.Services.AddControllers()
     });
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -45,4 +57,52 @@ app.MapControllers();
 
 app.Run();
 
+// void SetupModelBindingBehaviour(WebApplicationBuilder webApplicationBuilder)
+// {
+//     webApplicationBuilder.Services.Configure<ApiBehaviorOptions>(options =>
+//     {
+//         options.InvalidModelStateResponseFactory = context =>
+//         {
+//             var errors = context.ModelState
+//                 .Where(pair => pair.Value?.Errors.Count > 0)
+//                 .SelectMany(pair => pair.Value!.Errors)
+//                 .Select(error => error.ErrorMessage)
+//                 .ToArray();
+//
+//             var response = new PaymentErrorResponse
+//             {
+//                 Status = Status.Rejected,
+//                 Message = "The request is invalid.",
+//                 Errors = errors
+//             };
+//
+//             return new BadRequestObjectResult(response);
+//         };
+//     });
+// }
+
+// void SetupHttpClientWithRetry(WebApplicationBuilder builder1)
+// {
+//     builder1.Services.AddHttpClient<PaymentProvider>()
+//         .AddResilienceHandler("default", pipeline =>
+//         {
+//             pipeline.AddRetry(new RetryStrategyOptions<HttpResponseMessage>
+//             {
+//                 MaxRetryAttempts = 5,
+//                 Delay = TimeSpan.FromMilliseconds(100),
+//                 BackoffType = DelayBackoffType.Exponential,
+//             
+//                 ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
+//                     .Handle<HttpRequestException>()
+//                     .HandleResult(r => (int)r.StatusCode >= 500 || r.StatusCode == HttpStatusCode.RequestTimeout),
+//             
+//                 OnRetry = args =>
+//                 {
+//                     Console.WriteLine(
+//                         $"Retry {args.AttemptNumber} after {args.RetryDelay} due to {args.Outcome.Exception?.Message ?? args.Outcome.Result?.StatusCode.ToString()}");
+//                     return default;
+//                 }
+//             });
+//         });
+// }
 

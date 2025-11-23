@@ -1,3 +1,4 @@
+using PaymentGateway.Api.Exceptions;
 using PaymentGateway.Api.Models;
 using PaymentGateway.Api.Models.Requests;
 using PaymentGateway.Api.Models.Responses;
@@ -6,22 +7,32 @@ namespace PaymentGateway.Api.Services;
 
 public interface IPaymentService
 {
-    PostPaymentResponse ProcessPayment(PostPaymentRequest payment);
+    Task<PostPaymentResponse> ProcessPayment(PostPaymentRequest payment);
     PostPaymentResponse GetPaymentDetails(Guid id);
 }
 
-public class PaymentService(IPaymentsRepository paymentsRepository, IBankClient bankClient)
+public class PaymentService(IPaymentsRepository paymentsRepository, IPaymentProvider paymentProvider)
     : IPaymentService
 {
-    public PostPaymentResponse ProcessPayment(PostPaymentRequest paymentRequest)
+    public async Task<PostPaymentResponse> ProcessPayment(PostPaymentRequest paymentRequest)
     {
-        
-        // First call bank client , So we get status 
-        var bankResponse = bankClient.SubmitPayment(PaymentMapper.ToBankingRequest(paymentRequest));
-        
+        try
+        {
+            var bankResponse = await paymentProvider.SubmitPayment(PaymentMapper.ToBankingRequest(paymentRequest));
+
+            return CreatePaymentResponse(paymentRequest, bankResponse);
+        }
+        catch (Exception exception ) when (exception is UnknownPaymentException or PaymentSubmissionException)
+        {
+            return CreatePaymentResponse(paymentRequest,
+                new BankResponse() { IsAuthorized = false, AuthorisationCode = Guid.Empty });
+        }
+    }
+
+    private PostPaymentResponse CreatePaymentResponse(PostPaymentRequest paymentRequest, BankResponse bankResponse)
+    {
         var payment = PaymentMapper.ToPayment(paymentRequest,bankResponse);
         
-        //What happens if repository call fails ?.
         paymentsRepository.Add(payment);
 
         var response = PaymentMapper.ToResponse(payment);
@@ -32,6 +43,9 @@ public class PaymentService(IPaymentsRepository paymentsRepository, IBankClient 
     public PostPaymentResponse GetPaymentDetails(Guid id)
     {
         var payment = paymentsRepository.Get(id);
+        
+        if (payment == null)
+            throw new PaymentNotFoundException($"Payment with id {payment.Id} not Found");
 
         return PaymentMapper.ToResponse(payment);
     }
@@ -58,13 +72,13 @@ public static class PaymentMapper
         return new Payment
         {
             Id = Guid.NewGuid(),
-            Amount = request.Amount,
+            Amount = Convert.ToDecimal(request.Amount),
             Currency = request.Currency,
             ExpiryMonth = request.ExpiryMonth,
             ExpiryYear = request.ExpiryYear,
             IsAuthorized = bankResponse.IsAuthorized,
             AuthorisationCode = bankResponse.AuthorisationCode,
-            CardNumberLastFour = request.CardNumber.Substring(11,4)
+            CardNumberLastFour = request.CardNumber[^4..]
         };
     }
     
@@ -75,20 +89,16 @@ public static class PaymentMapper
             CardNumber = request.CardNumber,
             ExpiryDate = $"{request.ExpiryMonth}/{request.ExpiryYear}",
             Currency = request.Currency,
-            Amount = request.Amount,
-            Cvv = request.Cvv
+            Amount = Convert.ToDecimal(request.Amount),
+            Cvv = request.Cvv.ToString()
         };
     }
 }
 
-
-
-
-
 public interface IPaymentsRepository
 {
     void Add(Payment payment);
-    Payment Get(Guid id);
+    Payment? Get(Guid id);
 }
 
 
@@ -97,5 +107,5 @@ public enum Status
 {
     Authorized,
     Declined,
-    Error
+    Rejected
 }

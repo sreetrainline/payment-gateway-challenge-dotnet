@@ -37,7 +37,7 @@ public class PaymentsControllerTests
     //         .CreateClient();
     //
     //     // Act
-    //     var response = await client.GetAsync($"/api/Payments/{payment.Id}");
+    //     var response = await client.GetAsync($"/api/_paymentsStorage/{payment.Id}");
     //     var paymentResponse = await response.Content.ReadFromJsonAsync<PostPaymentResponse>();
     //     
     //     // Assert
@@ -53,7 +53,7 @@ public class PaymentsControllerTests
         var client = webApplicationFactory.CreateClient();
         
         // Act
-        var response = await client.GetAsync($"/api/Payments/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/_paymentsStorage/{Guid.NewGuid()}");
         
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
