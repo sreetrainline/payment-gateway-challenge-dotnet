@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using PaymentGateway.Api.Services;
 using PaymentGateway.Application.Interfaces;
 using PaymentGateway.Domain.Exceptions;
+using PaymentGateway.Domain.ExternalModels;
 using PaymentGateway.Infrastructure.ExternalModels;
 
 namespace PaymentGateway.Infrastructure;
@@ -12,7 +13,7 @@ namespace PaymentGateway.Infrastructure;
 public class PaymentProvider(IHttpClientFactory httpClientFactory, IOptions<BankConfig> bankConfig)
     : IPaymentProvider
 {
-    private readonly HttpClient _httpClient = httpClientFactory.CreateClient();
+    private readonly HttpClient _httpClient = httpClientFactory.CreateClient(nameof(PaymentProvider));
     private readonly BankConfig _bankConfig = bankConfig.Value;
 
     public async Task<BankResponse> SubmitPayment(BankPaymentRequest request)

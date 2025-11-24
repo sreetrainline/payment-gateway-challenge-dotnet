@@ -47,7 +47,8 @@ public class PaymentRequestValidator : AbstractValidator<PostPaymentRequest>
         // Amount (minor currency units, integer > 0)
         RuleFor(x => x.Amount)
             .NotNull().WithMessage("Amount is required.")
-            .GreaterThan(0).WithMessage("Amount must be greater than zero.");
+            .GreaterThan(0).WithMessage("Amount must be greater than zero.")
+            .LessThan(long.MaxValue).WithMessage($"Value should be less than{long.MaxValue}");
 
         // CVV (3–4 digits; note: int cannot preserve leading zeros)
         RuleFor(x => x.Cvv)

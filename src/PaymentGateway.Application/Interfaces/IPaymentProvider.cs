@@ -1,3 +1,4 @@
+using PaymentGateway.Domain.ExternalModels;
 using PaymentGateway.Infrastructure.ExternalModels;
 
 namespace PaymentGateway.Application.Interfaces;

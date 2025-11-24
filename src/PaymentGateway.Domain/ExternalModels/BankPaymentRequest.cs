@@ -1,19 +1,19 @@
 using System.Text.Json.Serialization;
 
-namespace PaymentGateway.Infrastructure.ExternalModels;
+namespace PaymentGateway.Domain.ExternalModels;
 
 public class BankPaymentRequest
 {
     [JsonPropertyName("card_number")]
-    public required string CardNumber { get; set; }
+    public string CardNumber { get; set; }
     
     [JsonPropertyName("expiry_date")]
-    public required string ExpiryDate { get; set; }
+    public string ExpiryDate { get; set; }
     [JsonPropertyName("currency")]
-    public required string Currency { get; set; }
+    public string Currency { get; set; }
     [JsonPropertyName("amount")]
-    public required decimal Amount { get; set; }
+    public decimal Amount { get; set; }
     [JsonPropertyName("cvv")]
-    public required string Cvv { get; set; }
+    public string Cvv { get; set; }
     
 }

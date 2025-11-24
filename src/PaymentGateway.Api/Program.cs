@@ -17,7 +17,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<IPaymentsRepository,PaymentsRepository>();
 builder.Services.AddScoped<IPaymentService,PaymentService>();
-builder.Services.AddTransient<IPaymentProvider,PaymentProvider>();
+builder.Services.AddScoped<IPaymentProvider,PaymentProvider>();
+builder.Services.AddSingleton<IPaymentMapper, PaymentMapper>();
 
 builder.Services.AddHttpClientWithRetry();
 builder.Services.ConfigureModelBindingBehaviour();
@@ -54,52 +55,7 @@ app.MapControllers();
 
 app.Run();
 
-// void SetupModelBindingBehaviour(WebApplicationBuilder webApplicationBuilder)
-// {
-//     webApplicationBuilder.Services.Configure<ApiBehaviorOptions>(options =>
-//     {
-//         options.InvalidModelStateResponseFactory = context =>
-//         {
-//             var errors = context.ModelState
-//                 .Where(pair => pair.Value?.Errors.Count > 0)
-//                 .SelectMany(pair => pair.Value!.Errors)
-//                 .Select(error => error.ErrorMessage)
-//                 .ToArray();
-//
-//             var response = new PaymentErrorResponse
-//             {
-//                 Status = Status.Rejected,
-//                 Message = "The request is invalid.",
-//                 Errors = errors
-//             };
-//
-//             return new BadRequestObjectResult(response);
-//         };
-//     });
-// }
-
-// void SetupHttpClientWithRetry(WebApplicationBuilder builder1)
-// {
-//     builder1.Services.AddHttpClient<PaymentProvider>()
-//         .AddResilienceHandler("default", pipeline =>
-//         {
-//             pipeline.AddRetry(new RetryStrategyOptions<HttpResponseMessage>
-//             {
-//                 MaxRetryAttempts = 5,
-//                 Delay = TimeSpan.FromMilliseconds(100),
-//                 BackoffType = DelayBackoffType.Exponential,
-//             
-//                 ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
-//                     .Handle<HttpRequestException>()
-//                     .HandleResult(r => (int)r.StatusCode >= 500 || r.StatusCode == HttpStatusCode.RequestTimeout),
-//             
-//                 OnRetry = args =>
-//                 {
-//                     Console.WriteLine(
-//                         $"Retry {args.AttemptNumber} after {args.RetryDelay} due to {args.Outcome.Exception?.Message ?? args.Outcome.Result?.StatusCode.ToString()}");
-//                     return default;
-//                 }
-//             });
-//         });
-// }
-
+public partial class Program
+{
+    
+}

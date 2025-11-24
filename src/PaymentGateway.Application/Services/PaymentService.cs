@@ -7,20 +7,14 @@ using PaymentGateway.Infrastructure.ExternalModels;
 
 namespace PaymentGateway.Application.Services;
 
-public interface IPaymentService
-{
-    Task<PostPaymentResponse> ProcessPayment(PostPaymentRequest payment);
-    PostPaymentResponse GetPaymentDetails(Guid id);
-}
-
-public class PaymentService(IPaymentsRepository paymentsRepository, IPaymentProvider paymentProvider)
+public class PaymentService(IPaymentsRepository paymentsRepository, IPaymentProvider paymentProvider, IPaymentMapper paymentMapper)
     : IPaymentService
 {
     public async Task<PostPaymentResponse> ProcessPayment(PostPaymentRequest paymentRequest)
     {
         try
         {
-            var bankResponse = await paymentProvider.SubmitPayment(PaymentMapper.ToBankingRequest(paymentRequest));
+            var bankResponse = await paymentProvider.SubmitPayment(paymentMapper.ToBankingRequest(paymentRequest));
 
             return CreatePaymentResponse(paymentRequest, bankResponse);
         }
@@ -33,22 +27,17 @@ public class PaymentService(IPaymentsRepository paymentsRepository, IPaymentProv
 
     private PostPaymentResponse CreatePaymentResponse(PostPaymentRequest paymentRequest, BankResponse bankResponse)
     {
-        var payment = PaymentMapper.ToPayment(paymentRequest,bankResponse);
+        var payment = paymentMapper.ToPayment(paymentRequest,bankResponse);
         
         paymentsRepository.Add(payment);
 
-        var response = PaymentMapper.ToResponse(payment);
-
-        return response;
+        return paymentMapper.ToResponse(payment);
     }
 
-    public PostPaymentResponse GetPaymentDetails(Guid id)
+    public GetPaymentResponse? GetPaymentDetails(Guid id)
     {
         var payment = paymentsRepository.Get(id);
-        
-        if (payment == null)
-            throw new PaymentNotFoundException($"Payment with id {payment.Id} not Found");
 
-        return PaymentMapper.ToResponse(payment);
+        return payment == null ? null : paymentMapper.ToGetResponse(payment);
     }
 }

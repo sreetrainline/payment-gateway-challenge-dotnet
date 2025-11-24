@@ -41,12 +41,15 @@ public static class ServiceCollectionExtensions
     
     public static IServiceCollection AddHttpClientWithRetry(this IServiceCollection services)
     {
-        services.AddHttpClient<PaymentProvider>()
+        services.AddHttpClient<PaymentProvider>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(1);
+            })
             .AddResilienceHandler("default", pipeline =>
             {
                 pipeline.AddRetry(new RetryStrategyOptions<HttpResponseMessage>
                 {
-                    MaxRetryAttempts = 5,
+                    MaxRetryAttempts = 3,
                     Delay = TimeSpan.FromMilliseconds(100),
                     BackoffType = DelayBackoffType.Exponential,
 

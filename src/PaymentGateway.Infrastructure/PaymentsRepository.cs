@@ -26,6 +26,8 @@ public class PaymentsRepository : IPaymentsRepository
 
     public Payment? Get(Guid id)
     {
-        return _paymentsStorage.GetValueOrDefault(id);
+        var payment = _paymentsStorage.GetValueOrDefault(id);
+
+        return payment;
     }
 }

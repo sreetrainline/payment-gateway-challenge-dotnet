@@ -1,6 +1,8 @@
 ﻿using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
+
+using PaymentGateway.Application.Interfaces;
 using PaymentGateway.Application.Services;
 using PaymentGateway.Domain.Enums;
 using PaymentGateway.Domain.Exceptions;
@@ -18,6 +20,9 @@ public class PaymentsController(IPaymentService paymentService, IValidator<PostP
     public ActionResult<GetPaymentResponse?> GetPaymentAsync(Guid id)
     {
         var payment = paymentService.GetPaymentDetails(id);
+
+        if (payment == null)
+            return NotFound($"Payment not found for id {id}");
         
         return  Ok(payment);
     }
