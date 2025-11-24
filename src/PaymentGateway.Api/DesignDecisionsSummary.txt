@@ -1,0 +1,50 @@
+Payment Gateway – Design Decisions Summary
+==========================================
+
+Thanks for reviewing my solution. I hope to learn from this experience . Following are some of the decisions I have taken while building this, Hope this helps in terms of understanding the solution.  
+
+1. Solution structured into API, Application, Domain, and Infrastructure layers.
+
+2. Mapping logic isolated in an IPaymentMapper to convert between API, domain, and provider models.
+
+3. Domain-specific exceptions (UnknownPaymentException, PaymentSubmissionException) used to represent failures.
+
+4.FluentValidation used for validating incoming payment requests. (Another option was Domain attributes, However wanted a single place where all validations are present)
+
+5. Structured response DTOs (PostPaymentResponse, GetPaymentResponse, PaymentErrorResponse) defined for API outputs.I have different responses for Get/Post just to have a clean separation
+
+6. FluentAssertions used for all assertion logic in unit tests.
+
+7. External dependencies (IPaymentProvider, IPaymentsRepository, IPaymentMapper) mocked using Moq.
+
+8. BankResponse used to capture provider results, with failures mapped to declined responses.
+
+9. Controllers kept thin and delegated all business logic to the service layer.
+
+10. End to End Tests - Where we call external dependency
+
+11. Integration Tests - Where we mock External Dependecy ( Wiremock)
+
+12. Middleware for Exception handling 
+
+13. Service Collection Extension for Resileince and Model Binding Behaviour 
+
+If I had more time 
+==================
+
+1. Add Logging 
+
+2. Swagger Examples 
+
+3. Clean up Tests and introduce some helpers / common code 
+
+4. Tests for Middleware / Service collection extentions
+
+5. Clean up Program.cs 
+
+6. Make DI of HttpClient to Provider more cleaner
+
+7. Global usings
+
+8. Make Sure there are no unnecessary Project References
+

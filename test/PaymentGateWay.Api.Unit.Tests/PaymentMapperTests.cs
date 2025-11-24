@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 using PaymentGateway.Application.Services;
 using PaymentGateway.Domain.Enums;
 using PaymentGateway.Domain.Models;
@@ -10,7 +12,115 @@ namespace PaymentGateWay.Api.Unit.Tests;
 public class PaymentMapperTests
 {
     private readonly PaymentMapper _sut = new();
+    private static BankResponse CreateBankResponse(bool authorized = true)
+    {
+        return new BankResponse
+        {
+            IsAuthorized = authorized,
+            AuthorisationCode = authorized ? new Guid("3fa85f64-5717-4562-b3fc-2c963f66afa6") : Guid.Empty
+        };
+    }
 
+    [Fact]
+    public void ToResponseMapsAllFieldsForAuthorizedPayment()
+    {
+        var payment = CreateAuthorizedPayment();
+
+        var result = _sut.ToResponse(payment);
+
+        result.Id.Should().Be(payment.Id);
+        result.Amount.Should().Be(payment.Amount);
+        result.Currency.Should().Be(payment.Currency);
+        result.ExpiryMonth.Should().Be(payment.ExpiryMonth);
+        result.ExpiryYear.Should().Be(payment.ExpiryYear);
+        result.Status.Should().Be(PaymentStatus.Authorized);
+        result.CardNumberLastFour.Should().Be(payment.CardNumberLastFour);
+    }
+
+    [Fact]
+    public void ToResponseMapsStatusAsDeclinedWhenNotAuthorized()
+    {
+        var payment = CreateDeclinedPayment();
+
+        var result = _sut.ToResponse(payment);
+
+        result.Status.Should().Be(PaymentStatus.Declined);
+    }
+
+    [Fact]
+    public void ToGetResponseMapsAllFieldsForAuthorizedPayment()
+    {
+        var payment = CreateAuthorizedPayment();
+
+        var result = _sut.ToGetResponse(payment);
+
+        result.Id.Should().Be(payment.Id);
+        result.Amount.Should().Be(payment.Amount);
+        result.Currency.Should().Be(payment.Currency);
+        result.ExpiryMonth.Should().Be(payment.ExpiryMonth);
+        result.ExpiryYear.Should().Be(payment.ExpiryYear);
+        result.Status.Should().Be(PaymentStatus.Authorized);
+        result.CardNumberLastFour.Should().Be(payment.CardNumberLastFour);
+    }
+
+    [Fact]
+    public void ToGetResponseMapsStatusAsDeclinedWhenNotAuthorized()
+    {
+        var payment = CreateDeclinedPayment();
+
+        var result = _sut.ToGetResponse(payment);
+
+        result.Status.Should().Be(PaymentStatus.Declined);
+    }
+
+    [Fact]
+    public void ToPaymentMapsRequestAndBankResponseCorrectly()
+    {
+        var request = CreatePostPaymentRequest();
+        var bankResponse = CreateBankResponse(true);
+
+        var payment = _sut.ToPayment(request, bankResponse);
+
+        payment.Id.Should().NotBe(Guid.Empty);
+        payment.Amount.Should().Be(request.Amount);
+        payment.Currency.Should().Be(request.Currency);
+        payment.ExpiryMonth.Should().Be(request.ExpiryMonth);
+        payment.ExpiryYear.Should().Be(request.ExpiryYear);
+        payment.IsAuthorized.Should().Be(bankResponse.IsAuthorized);
+        payment.AuthorisationCode.Should().Be(bankResponse.AuthorisationCode);
+        payment.CardNumberLastFour.Should().Be(request.CardNumber[^4..]);
+    }
+
+    [Fact]
+    public void ToPaymentSetsIsAuthorizedFromBankResponse()
+    {
+        var request = CreatePostPaymentRequest();
+        var bankResponse = CreateBankResponse(false);
+
+        var payment = _sut.ToPayment(request, bankResponse);
+
+        payment.IsAuthorized.Should().BeFalse();
+        payment.AuthorisationCode.Should().Be(Guid.Empty);
+    }
+
+    [Fact]
+    public void ToBankingRequestMapsAllFieldsCorrectly()
+    {
+        var request = CreatePostPaymentRequest();
+        request.ExpiryMonth = 5;
+        request.ExpiryYear = 2040;
+        request.Amount = 12345;
+        request.Cvv = 987;
+
+        var bankRequest = _sut.ToBankingRequest(request);
+
+        bankRequest.CardNumber.Should().Be(request.CardNumber);
+        bankRequest.ExpiryDate.Should().Be("5/2040");
+        bankRequest.Currency.Should().Be(request.Currency);
+        bankRequest.Amount.Should().Be(request.Amount);
+        bankRequest.Cvv.Should().Be(request.Cvv.ToString());
+    }
+    
     private Payment CreateAuthorizedPayment()
     {
         return new Payment
@@ -44,108 +154,5 @@ public class PaymentMapperTests
             Amount = 9999,
             Cvv = 123
         };
-    }
-
-    private BankResponse CreateBankResponse(bool authorized = true)
-    {
-        return new BankResponse
-        {
-            IsAuthorized = authorized,
-            AuthorisationCode = authorized ? new Guid("3fa85f64-5717-4562-b3fc-2c963f66afa6") : Guid.Empty
-        };
-    }
-
-    [Fact]
-    public void ToResponse_Maps_All_Fields_For_Authorized_Payment()
-    {
-        var payment = CreateAuthorizedPayment();
-        var result = _sut.ToResponse(payment);
-
-        Assert.Equal(payment.Id, result.Id);
-        Assert.Equal(payment.Amount, result.Amount);
-        Assert.Equal(payment.Currency, result.Currency);
-        Assert.Equal(payment.ExpiryMonth, result.ExpiryMonth);
-        Assert.Equal(payment.ExpiryYear, result.ExpiryYear);
-        Assert.Equal(PaymentStatus.Authorized, result.Status);
-        Assert.Equal(payment.CardNumberLastFour, result.CardNumberLastFour);
-    }
-
-    [Fact]
-    public void ToResponse_Maps_Status_As_Declined_When_Not_Authorized()
-    {
-        var payment = CreateDeclinedPayment();
-        var result = _sut.ToResponse(payment);
-
-        Assert.Equal(PaymentStatus.Declined, result.Status);
-    }
-
-    [Fact]
-    public void ToGetResponse_Maps_All_Fields_For_Authorized_Payment()
-    {
-        var payment = CreateAuthorizedPayment();
-        var result = _sut.ToGetResponse(payment);
-
-        Assert.Equal(payment.Id, result.Id);
-        Assert.Equal(payment.Amount, result.Amount);
-        Assert.Equal(payment.Currency, result.Currency);
-        Assert.Equal(payment.ExpiryMonth, result.ExpiryMonth);
-        Assert.Equal(payment.ExpiryYear, result.ExpiryYear);
-        Assert.Equal(PaymentStatus.Authorized, result.Status);
-        Assert.Equal(payment.CardNumberLastFour, result.CardNumberLastFour);
-    }
-
-    [Fact]
-    public void ToGetResponse_Maps_Status_As_Declined_When_Not_Authorized()
-    {
-        var payment = CreateDeclinedPayment();
-        var result = _sut.ToGetResponse(payment);
-
-        Assert.Equal(PaymentStatus.Declined, result.Status);
-    }
-
-    [Fact]
-    public void ToPayment_Maps_Request_And_BankResponse_Correctly()
-    {
-        var request = CreatePostPaymentRequest();
-        var bankResponse = CreateBankResponse(true);
-        var payment = _sut.ToPayment(request, bankResponse);
-
-        Assert.NotEqual(Guid.Empty, payment.Id);
-        Assert.Equal(request.Amount, payment.Amount);
-        Assert.Equal(request.Currency, payment.Currency);
-        Assert.Equal(request.ExpiryMonth, payment.ExpiryMonth);
-        Assert.Equal(request.ExpiryYear, payment.ExpiryYear);
-        Assert.Equal(bankResponse.IsAuthorized, payment.IsAuthorized);
-        Assert.Equal(bankResponse.AuthorisationCode, payment.AuthorisationCode);
-        Assert.Equal(request.CardNumber[^4..], payment.CardNumberLastFour);
-    }
-
-    [Fact]
-    public void ToPayment_Sets_IsAuthorized_From_BankResponse()
-    {
-        var request = CreatePostPaymentRequest();
-        var bankResponse = CreateBankResponse(false);
-        var payment = _sut.ToPayment(request, bankResponse);
-
-        Assert.False(payment.IsAuthorized);
-        Assert.Equal(Guid.Empty, payment.AuthorisationCode);
-    }
-
-    [Fact]
-    public void ToBankingRequest_Maps_All_Fields_Correctly()
-    {
-        var request = CreatePostPaymentRequest();
-        request.ExpiryMonth = 5;
-        request.ExpiryYear = 2040;
-        request.Amount = 12345;
-        request.Cvv = 987;
-
-        var bankRequest = _sut.ToBankingRequest(request);
-
-        Assert.Equal(request.CardNumber, bankRequest.CardNumber);
-        Assert.Equal("5/2040", bankRequest.ExpiryDate);
-        Assert.Equal(request.Currency, bankRequest.Currency);
-        Assert.Equal(Convert.ToDecimal(request.Amount), bankRequest.Amount);
-        Assert.Equal(request.Cvv.ToString(), bankRequest.Cvv);
     }
 }
