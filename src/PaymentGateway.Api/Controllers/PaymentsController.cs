@@ -17,6 +17,8 @@ public class PaymentsController(IPaymentService paymentService, IValidator<PostP
 {
     [HttpGet("{id:guid}")]
     [ActionName("GetPayment")]
+    [ProducesResponseType(typeof(GetPaymentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
     public IActionResult GetPayment(Guid id)
     {
         var payment = paymentService.GetPaymentDetails(id);
@@ -28,6 +30,8 @@ public class PaymentsController(IPaymentService paymentService, IValidator<PostP
     }
     
     [HttpPost]
+    [ProducesResponseType(typeof(PostPaymentResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(PaymentErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddPaymentAsync([FromBody]PostPaymentRequest paymentRequest)
     {
         var validationResult = await paymentRequestValidator.ValidateAsync(paymentRequest);

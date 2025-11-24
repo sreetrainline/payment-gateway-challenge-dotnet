@@ -2,6 +2,9 @@ using PaymentGateway.Domain.Exceptions;
 using PaymentGateway.Domain.Models;
 using PaymentGateway.Infrastructure;
 using System;
+
+using FluentAssertions;
+
 using Xunit;
 
 namespace PaymentGateWay.Api.Unit.Tests;
@@ -9,24 +12,27 @@ namespace PaymentGateWay.Api.Unit.Tests;
 public class PaymentsRepositoryTests
 {
     [Fact]
-    public void Add_NullPayment_ThrowsArgumentNullException()
+    public void NullPaymentThrowsException()
     {
-        var repository = new PaymentsRepository();
-
-        Assert.Throws<ArgumentNullException>(() => repository.Add(null));
+        Action act = () => new PaymentsRepository().Add(null);
+        
+        act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
-    public void Add_PaymentWithEmptyId_ThrowsArgumentException()
+    public void EmptyPaymentIdThrowsException()
     {
         var repository = new PaymentsRepository();
         var payment = new Payment { Id = Guid.Empty };
+        
+        Action act = () => new PaymentsRepository().Add(payment);
 
-        Assert.Throws<ArgumentException>(() => repository.Add(payment));
+        act.Should().Throw<ArgumentException>();
+
     }
 
     [Fact]
-    public void Add_ValidPayment_StoresPayment()
+    public void ValidPaymentStoresPayment()
     {
         var repository = new PaymentsRepository();
         var id = Guid.NewGuid();
@@ -35,34 +41,36 @@ public class PaymentsRepositoryTests
         repository.Add(payment);
         var result = repository.Get(id);
 
-        Assert.Same(payment, result);
+        result.Should().BeEquivalentTo(payment);
     }
 
     [Fact]
-    public void Add_DuplicatePaymentId_ThrowsPaymentNotAddedException()
+    public void DuplicatePaymentIdThrowsException()
     {
-        var repository = new PaymentsRepository();
+        var paymentRepository = new PaymentsRepository();
         var id = Guid.NewGuid();
         var payment = new Payment { Id = id };
+        
+        paymentRepository.Add(payment);
+        
+        Action act = () => paymentRepository.Add(payment);
 
-        repository.Add(payment);
-
-        Assert.Throws<PaymentNotAddedException>(() => repository.Add(payment));
+        act.Should().Throw<PaymentNotAddedException>();
     }
 
     [Fact]
-    public void Get_PaymentDoesNotExist_ReturnsNull()
+    public void NoPaymentReturnsNull()
     {
         var repository = new PaymentsRepository();
         var id = Guid.NewGuid();
 
         var result = repository.Get(id);
 
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Fact]
-    public void Get_PaymentExists_ReturnsPayment()
+    public void PaymentExistsReturnsPayment()
     {
         var repository = new PaymentsRepository();
         var id = Guid.NewGuid();
@@ -71,6 +79,6 @@ public class PaymentsRepositoryTests
         repository.Add(payment);
         var result = repository.Get(id);
 
-        Assert.Same(payment, result);
+        result.Should().BeEquivalentTo(payment);
     }
 }

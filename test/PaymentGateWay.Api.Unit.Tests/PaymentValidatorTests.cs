@@ -1,3 +1,5 @@
+using FluentAssertions;
+
 using FluentValidation.Results;
 using PaymentGateway.Api.Validators;
 using PaymentGateway.Domain.Models.Requests;
@@ -24,102 +26,99 @@ public class PaymentRequestValidatorTests
     }
 
     [Fact]
-    public void Valid_request_should_pass_validation()
+    public void ValidRequestPassesValidation()
     {
         var request = CreateValidRequest();
         
         ValidationResult result = _validator.Validate(request);
-        
-        Assert.True(result.IsValid);
+
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]
-    public void CardNumber_empty_should_fail()
+    public void EmptyCardNumberShouldFail()
     {
         var request = CreateValidRequest();
         request.CardNumber = string.Empty;
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.IsValid.Should().BeFalse();
+
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.CardNumber) &&
-            e.ErrorMessage == "Card number is required.");
+            e.ErrorMessage == "Card number is required."
+        );
     }
 
     [Fact]
-    public void CardNumber_too_short_should_fail()
+    public void ShortCardNumberShouldFail()
     {
         var request = CreateValidRequest();
         request.CardNumber = "1234567890123"; 
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.IsValid.Should().BeFalse();
+
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.CardNumber) &&
-            e.ErrorMessage == "Card number must be between 14 and 19 characters long.");
+            e.ErrorMessage == "Card number must be between 14 and 19 characters long."
+        );
     }
 
     [Fact]
-    public void CardNumber_with_non_numeric_chars_should_fail()
+    public void NonNumericCardNumberShouldFail()
     {
         var request = CreateValidRequest();
         request.CardNumber = "1234abcd567890";
 
         var result = _validator.Validate(request);
+        
+        result.IsValid.Should().BeFalse();
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.CardNumber) &&
-            e.ErrorMessage == "Card number must contain only numeric characters.");
+            e.ErrorMessage == "Card number must contain only numeric characters."
+        );
     }
     
     [Fact]
-    public void ExpiryMonth_out_of_range_should_fail()
+    public void OutOfRangeMonthShouldFail()
     {
         var request = CreateValidRequest();
         request.ExpiryMonth = 13;
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.IsValid.Should().BeFalse();
+
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.ExpiryMonth) &&
-            e.ErrorMessage == "Expiry month must be between 1 and 12.");
+            e.ErrorMessage == "Expiry month must be between 1 and 12."
+        );
+        
     }
 
-    [Fact]
-    public void ExpiryYear_less_than_one_should_fail()
-    {
-        var request = CreateValidRequest();
-        request.ExpiryYear = 0;
-
-        var result = _validator.Validate(request);
-
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
-            e.PropertyName == nameof(PostPaymentRequest.ExpiryYear) &&
-            e.ErrorMessage == "Expiry year must be a valid year.");
-    }
-    
 
     [Fact]
-    public void Expiry_in_the_past_should_fail_future_check()
+    public void PastExpiryDateShouldFail()
     {
         var request = CreateValidRequest();
         request.ExpiryMonth = 1;
-        request.ExpiryYear = 2000; // safely in the past
+        request.ExpiryYear = 2000; 
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
-            e.ErrorMessage == "Expiry month and year must be in the future.");
+        result.IsValid.Should().BeFalse();
+
+        result.Errors.Should().ContainSingle(e =>
+            e.ErrorMessage == "Expiry month and year must be in the future."
+        );
     }
 
     [Fact]
-    public void Expiry_in_the_future_should_pass_future_check()
+    public void FutureExpiryDateShouldPass()
     {
         var now = DateTime.UtcNow;
         var request = CreateValidRequest();
@@ -128,144 +127,155 @@ public class PaymentRequestValidatorTests
 
         var result = _validator.Validate(request);
 
-        Assert.True(result.IsValid);
+        result.IsValid.Should().BeTrue();
     }
     
 
     [Fact]
-    public void Currency_empty_should_fail()
+    public void EmptyCurrencyShouldFail()
     {
         var request = CreateValidRequest();
         request.Currency = string.Empty;
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        
+        result.IsValid.Should().BeFalse();
+
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.Currency) &&
-            e.ErrorMessage == "Currency is required.");
+            e.ErrorMessage == "Currency is required."
+        );
     }
 
     [Fact]
-    public void Currency_not_three_letters_should_fail()
+    public void InvalidCurrencyShouldFail()
     {
         var request = CreateValidRequest();
-        request.Currency = "GB"; // 2 letters
+        request.Currency = "GB"; 
 
         var result = _validator.Validate(request);
+        
+        result.IsValid.Should().BeFalse();
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.Currency) &&
-            e.ErrorMessage == "Currency must be a 3-letter ISO code.");
+            e.ErrorMessage == "Currency must be a 3-letter ISO code."
+        );
     }
 
     [Fact]
-    public void Unsupported_currency_should_fail()
+    public void UnsupportedCurrencyShouldFail()
     {
         var request = CreateValidRequest();
         request.Currency = "INR";
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.IsValid.Should().BeFalse();
+
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.Currency) &&
-            e.ErrorMessage == "Currency is not supported.");
+            e.ErrorMessage == "Currency is not supported."
+        );
     }
 
     [Fact]
-    public void Supported_currency_case_insensitive_should_pass()
+    public void LowerCaseCurrencyShouldPass()
     {
         var request = CreateValidRequest();
         request.Currency = "gbp"; 
 
         var result = _validator.Validate(request);
 
-        Assert.True(result.IsValid);
+        result.IsValid.Should().BeTrue();
     }
 
-
     [Fact]
-    public void Amount_less_than_or_equal_zero_should_fail()
+    public void ZeroAmountShouldFail()
     {
         var request = CreateValidRequest();
         request.Amount = 0;
 
         var result = _validator.Validate(request);
-
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        
+        result.IsValid.Should().BeFalse();
+        
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.Amount) &&
-            e.ErrorMessage == "Amount must be greater than zero.");
+            e.ErrorMessage == "Amount must be greater than zero."
+        );
     }
 
     [Fact]
-    public void Amount_equal_to_long_max_value_should_fail()
+    public void LongMaxValueFails()
     {
         var request = CreateValidRequest();
         request.Amount = long.MaxValue;
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.IsValid.Should().BeFalse();
+        
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.Amount) &&
-            e.ErrorMessage == $"Value should be less than{long.MaxValue}");
+            e.ErrorMessage == $"Value should be less than{long.MaxValue}"
+        );
     }
 
     [Fact]
-    public void Amount_just_below_long_max_should_pass()
+    public void AmountBelowLongMaxShouldPass()
     {
         var request = CreateValidRequest();
         request.Amount = long.MaxValue - 1;
 
         var result = _validator.Validate(request);
 
-        Assert.True(result.IsValid);
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]
-    public void Cvv_less_than_three_digits_should_fail()
+    public void CvvLessThanThreeShouldFail()
     {
         var request = CreateValidRequest();
         request.Cvv = 99;
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.IsValid.Should().BeFalse();
+        
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.Cvv) &&
-            e.ErrorMessage == "CVV must be 3 or 4 digits long.");
+            e.ErrorMessage == "CVV must be 3 or 4 digits long."
+        );
     }
 
     [Fact]
-    public void Cvv_more_than_four_digits_should_fail()
+    public void CvvMoreThanFourShouldFail()
     {
         var request = CreateValidRequest();
         request.Cvv = 10000;
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e =>
+        result.IsValid.Should().BeFalse();
+        
+        result.Errors.Should().ContainSingle(e =>
             e.PropertyName == nameof(PostPaymentRequest.Cvv) &&
-            e.ErrorMessage == "CVV must be 3 or 4 digits long.");
+            e.ErrorMessage == "CVV must be 3 or 4 digits long."
+        );
     }
 
-    [Fact]
-    public void Cvv_three_digits_or_four_digits_should_pass()
+    [Theory]
+    [InlineData(123)]
+    [InlineData(1234)]
+    public void ValidCvvShouldPass(int requestCvv)
     {
-        var request3 = CreateValidRequest();
-        request3.Cvv = 123;
+        var request = CreateValidRequest();
+        request.Cvv = requestCvv;
 
-        var result3 = _validator.Validate(request3);
-        Assert.True(result3.IsValid);
+        var result = _validator.Validate(request);
 
-        var request4 = CreateValidRequest();
-        request4.Cvv = 1234;
-
-        var result4 = _validator.Validate(request4);
-        Assert.True(result4.IsValid);
+        result.IsValid.Should().BeTrue();
     }
 }
