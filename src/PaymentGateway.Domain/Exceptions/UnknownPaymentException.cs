@@ -1,0 +1,6 @@
+namespace PaymentGateway.Domain.Exceptions;
+
+public class UnknownPaymentException(string message, Exception inner): Exception(message,inner)
+{
+    
+}
