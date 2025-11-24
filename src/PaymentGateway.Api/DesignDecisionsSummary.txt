@@ -36,7 +36,7 @@ If I had more time
 
 2. Swagger Examples 
 
-3. Clean up Tests and introduce some helpers / common code 
+3. Clean up Tests and introduce some helpers / common code + Move Tests to separate projects
 
 4. Tests for Middleware / Service collection extentions
 
