@@ -1,13 +1,14 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
+
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json; // Change ?
-using PaymentGateway.Api.Controllers;
 using PaymentGateway.Domain.Enums;
 using PaymentGateway.Domain.Models.Requests;
 using PaymentGateway.Domain.Models.Responses;
+using FluentAssertions;
 
 using WireMock.Server;
 using WireMock.RequestBuilders;
@@ -17,7 +18,6 @@ namespace PaymentGateway.Api.Tests;
 
 public class PaymentsIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 {
-
     private readonly WireMockServer _wiremock;
     private readonly HttpClient _client;
     private int _retryCounter = 0;
@@ -46,7 +46,6 @@ public class PaymentsIntegrationTests : IClassFixture<WebApplicationFactory<Prog
     [Fact]
     public async Task SuccessSetupAuthorisesPayment()
     {
-        // Create a Payment
         PostPaymentRequest request = SetupPostPaymentRequest("1234567891234567");
         
         SetupBankCall(200, @"{ ""authorized"": true, ""authorization_code"": ""9f5f3e6b-3e6f-4e3d-8d22-4f0dd6b7089c"" }");
@@ -55,14 +54,30 @@ public class PaymentsIntegrationTests : IClassFixture<WebApplicationFactory<Prog
         
         var postPaymentResponse = await postResponse.Content.ReadFromJsonAsync<PostPaymentResponse>();
         
-        Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
-        Assert.Equal(postPaymentResponse.Status,PaymentStatus.Authorized);
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        postPaymentResponse!.Status.Should().Be(PaymentStatus.Authorized);
+        
+    }
+    
+    [Fact]
+    public async Task FailureSetupDeclinesPayment()
+    {
+        PostPaymentRequest request = SetupPostPaymentRequest("1234567891234567");
+        
+        SetupBankCall(200, @"{ ""authorized"": false, ""authorization_code"": """" }");
+        
+        var postResponse = await _client.PostAsync($"/api/payments",CreateRequestContent(request));
+        
+        var postPaymentResponse = await postResponse.Content.ReadFromJsonAsync<PostPaymentResponse>();
+        
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        postPaymentResponse!.Status.Should().Be(PaymentStatus.Declined);
+        
     }
     
     [Fact]
     public async Task ErrorSetupDeclinesPaymentAndRetries()
     {
-        // Create a Payment
         PostPaymentRequest request = SetupPostPaymentRequest("1234567891234567");
         
         SetupBankCallError();
@@ -71,24 +86,11 @@ public class PaymentsIntegrationTests : IClassFixture<WebApplicationFactory<Prog
         
         var postPaymentResponse = await postResponse.Content.ReadFromJsonAsync<PostPaymentResponse>();
         
-        Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
-        Assert.Equal(postPaymentResponse.Status,PaymentStatus.Declined);
-        Assert.Equal(4,_retryCounter);
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        postPaymentResponse!.Status.Should().Be(PaymentStatus.Declined);
+        _retryCounter.Should().Be(4);
     }
-
-    [Fact]
-    public async Task Returns404IfPaymentNotFound()
-    {
-        // Arrange
-        var webApplicationFactory = new WebApplicationFactory<PaymentsController>();
-        var client = webApplicationFactory.CreateClient();
-        
-        // Act
-        var response = await client.GetAsync($"/api/payments/{Guid.NewGuid()}");
-        
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
+    
     
     private void SetupBankCall(int statusCode, string responseBody)
     {
@@ -123,21 +125,11 @@ public class PaymentsIntegrationTests : IClassFixture<WebApplicationFactory<Prog
     
     private static StringContent CreateRequestContent(PostPaymentRequest paymentRequest)
     {
-        return new StringContent(JsonConvert.SerializeObject(paymentRequest), Encoding.UTF8, "application/json");
-    }
-    
-    private static GetPaymentResponse SetupExpectedGetResponse(Guid guid)
-    {
-        var expectedGetResponse = new GetPaymentResponse
-        {
-            Id = guid,
-            ExpiryYear = 2030,
-            ExpiryMonth = 12,
-            Amount = 1000,
-            CardNumberLastFour = "4567",
-            Currency = "GBP"
-        };
-        return expectedGetResponse;
+        return new StringContent(
+            JsonSerializer.Serialize(paymentRequest),
+            Encoding.UTF8,
+            "application/json"
+        );
     }
 
     private static PostPaymentRequest SetupPostPaymentRequest(string cardNumber)

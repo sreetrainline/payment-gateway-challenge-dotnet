@@ -17,7 +17,7 @@ public class PaymentsController(IPaymentService paymentService, IValidator<PostP
 {
     [HttpGet("{id:guid}")]
     [ActionName("GetPayment")]
-    public ActionResult<GetPaymentResponse?> GetPaymentAsync(Guid id)
+    public IActionResult GetPayment(Guid id)
     {
         var payment = paymentService.GetPaymentDetails(id);
 
@@ -28,21 +28,20 @@ public class PaymentsController(IPaymentService paymentService, IValidator<PostP
     }
     
     [HttpPost]
-    public async Task<ActionResult<PostPaymentResponse?>> AddPaymentAsync([FromBody]PostPaymentRequest paymentRequest)
+    public async Task<IActionResult> AddPaymentAsync([FromBody]PostPaymentRequest paymentRequest)
     {
         var validationResult = await paymentRequestValidator.ValidateAsync(paymentRequest);
 
-        if (validationResult.IsValid)
-        {
-            var paymentResponse = await paymentService.ProcessPayment(paymentRequest);
+        if (!validationResult.IsValid)
+            return ReturnInvalidRequest(validationResult);
 
-            return CreatedAtAction("GetPayment", new { id = paymentResponse.Id }, paymentResponse);
-        }
-        
-        return ReturnInvalidRequest(validationResult);
+        var paymentResponse = await paymentService.ProcessPayment(paymentRequest);
+
+        return CreatedAtAction("GetPayment", new { id = paymentResponse.Id }, paymentResponse);
+
     }
 
-    private ActionResult<PostPaymentResponse?> ReturnInvalidRequest(ValidationResult validationResult)
+    private IActionResult ReturnInvalidRequest(ValidationResult validationResult)
     {
         var errors = validationResult.Errors
             .Select(e => e.ErrorMessage)

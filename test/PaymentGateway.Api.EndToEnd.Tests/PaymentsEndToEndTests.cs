@@ -14,8 +14,6 @@ namespace PaymentGateway.Api.Integration.Tests;
 public class PaymentsIntegrationTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly Random _random = new();
-    
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
@@ -30,7 +28,7 @@ public class PaymentsIntegrationTests(WebApplicationFactory<Program> factory)
         
         
         //Get Payment
-        GetPaymentResponse expectedGetResponse = SetupExpectedGetResponse(postPaymentResponse.Id);
+        GetPaymentResponse expectedGetResponse = SetupExpectedGetResponse(postPaymentResponse!.Id);
        
         var response = await _client.GetAsync(postResponse.Headers.Location);
         
@@ -44,16 +42,14 @@ public class PaymentsIntegrationTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task CardErrorReturnsDeclinedPayment()
     {
-        // Create a Payment
         PostPaymentRequest request = SetupPostPaymentRequest("1234567891234560");
         
         var postResponse = await _client.PostAsync($"/api/payments",CreateRequestContent(request));
         
         var postPaymentResponse = await postResponse.Content.ReadFromJsonAsync<PostPaymentResponse>();
         
-        //Verify that the same values come back 
         postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        postPaymentResponse.Status.Should().Be(PaymentStatus.Declined);
+        postPaymentResponse!.Status.Should().Be(PaymentStatus.Declined);
     }
     
     [Fact]
@@ -66,7 +62,7 @@ public class PaymentsIntegrationTests(WebApplicationFactory<Program> factory)
         var postPaymentResponse = await postResponse.Content.ReadFromJsonAsync<PostPaymentResponse>();
         
         postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        postPaymentResponse.Status.Should().Be(PaymentStatus.Authorized);
+        postPaymentResponse!.Status.Should().Be(PaymentStatus.Authorized);
     }
     
     [Fact]
@@ -79,17 +75,15 @@ public class PaymentsIntegrationTests(WebApplicationFactory<Program> factory)
         var postPaymentResponse = await postResponse.Content.ReadFromJsonAsync<PostPaymentResponse>();
         
         postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        postPaymentResponse.Status.Should().Be(PaymentStatus.Declined);
+        postPaymentResponse!.Status.Should().Be(PaymentStatus.Declined);
     }
     
     [Fact]
     public async Task Returns404IfPaymentNotFound()
     {
-        // Act
         var response = await _client.GetAsync($"/api/payments/{Guid.NewGuid()}");
-        
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
     
     private static StringContent CreateRequestContent(PostPaymentRequest paymentRequest)
@@ -106,7 +100,8 @@ public class PaymentsIntegrationTests(WebApplicationFactory<Program> factory)
             ExpiryMonth = 12,
             Amount = 1000,
             CardNumberLastFour = "4567",
-            Currency = "GBP"
+            Currency = "GBP",
+            Status = PaymentStatus.Authorized
         };
         return expectedGetResponse;
     }
